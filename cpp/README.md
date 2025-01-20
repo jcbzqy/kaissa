@@ -1,9 +1,3 @@
-# kaissa
-
-basic UCI engines for learning purposes
-separate engines in cpp and rust
-
-## cpp
 ```bash
 # install mamba first
 mamba create -n kaissa
