@@ -6,9 +6,9 @@ class KaissaConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     def requirements(self):
-        self.requires("boost/1.85.0")
         self.requires("fmt/11.1.1")
         self.requires("abseil/20240722.0")
+        self.requires("gtest/1.15.0")
 
     def layout(self):
         cmake_layout(self)
@@ -23,3 +23,4 @@ class KaissaConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+        cmake.test()

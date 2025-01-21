@@ -10,8 +10,6 @@ os=Linux
 [options]
 *:shared=False
 *:fPIC=True
-boost/*:without_locale=True
-boost/*:without_stacktrace=True
 
 [buildenv]
 CC=clang
