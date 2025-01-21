@@ -2,6 +2,7 @@
 
 basic UCI engines for learning purposes
 separate engines in cpp and rust
+array (not bitboard) representation
 
 ## cpp
 ```bash
@@ -14,3 +15,5 @@ mkdir -p build
 conan install . --build=missing --profile conan_profiles/clang-linux-release
 conan build . --profile conan_profiles/clang-linux-release
 ```
+
+## rust
