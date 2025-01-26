@@ -23,6 +23,8 @@ void UCI::mainLoop() {
         isReadyCommand();
     } else if (cmd == "quit") {
         quitCommand();
+    } else if (cmd == "ucinewgame") {
+        uciNewGameCommand();
     } else if (cmd.starts_with("debug")) {
         debugCommand(cmd.find("on") != std::string_view::npos);
     } else if (cmd.starts_with("setoption")) {
@@ -99,13 +101,9 @@ void UCI::registerCommand(std::string_view) const {
     std::cout << "registration ok\n";
 }
 
-void UCI::ponderHitCommand() const {
-    std::cout << "ponder unsupported\n";
-}
+void UCI::ponderHitCommand() const { std::cout << "ponder unsupported\n"; }
 
-void UCI::debugCommand(bool) const {
-    std::cout << "debug unsupported\n";
-}
+void UCI::debugCommand(bool) const { std::cout << "debug unsupported\n"; }
 
 void UCI::stopCommand() const { engine.stop(); }
 
@@ -118,6 +116,8 @@ void UCI::positionCommand(const PositionParams &positionParams) const {
 }
 
 void UCI::goCommand(const GoParams &goParams) const { engine.go(goParams); }
+
+void UCI::uciNewGameCommand() const { std::cout << "ucinewgame unsupported\n"; }
 
 [[nodiscard]] PositionParams
 UCI::parsePositionCommand(std::string_view args) const {
