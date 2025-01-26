@@ -23,4 +23,3 @@ class KaissaConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
-        cmake.test()

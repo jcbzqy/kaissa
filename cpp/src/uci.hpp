@@ -33,6 +33,7 @@ class UCI {
     void stopCommand() const;
     void ponderHitCommand() const;
     void quitCommand() const;
+    void uciNewGameCommand() const;
 
     void
     sendOption(std::string_view name, std::string_view type,
