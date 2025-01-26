@@ -25,6 +25,8 @@ enum Piece {
     BK = 12
 };
 
+char pieceToChar(Piece piece);
+
 class Board {
   public:
     std::array<Piece, 64> board;
