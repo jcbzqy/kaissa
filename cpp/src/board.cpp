@@ -64,36 +64,36 @@ ZobristKey Board::computeZobristKey() const {
 #include <sstream>
 #include <string>
 
-inline std::string pieceToChar(Piece piece) {
+char pieceToChar(Piece piece) {
     switch (piece) {
     case EMPTY:
-        return ".";
+        return '.';
     case WP:
-        return "P";
+        return 'P';
     case WN:
-        return "N";
+        return 'N';
     case WB:
-        return "B";
+        return 'B';
     case WR:
-        return "R";
+        return 'R';
     case WQ:
-        return "Q";
+        return 'Q';
     case WK:
-        return "K";
+        return 'K';
     case BP:
-        return "p";
+        return 'p';
     case BN:
-        return "n";
+        return 'n';
     case BB:
-        return "b";
+        return 'b';
     case BR:
-        return "r";
+        return 'r';
     case BQ:
-        return "q";
+        return 'q';
     case BK:
-        return "k";
+        return 'k';
     default:
-        return "?";
+        return '?';
     }
 }
 

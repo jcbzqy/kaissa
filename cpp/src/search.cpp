@@ -24,6 +24,18 @@ inline int pieceColor(Piece p) {
     return 0;
 }
 
+std::string moveToUCI(const Move &move) {
+    std::string result;
+    result += static_cast<char>('a' + colOf(move.from));
+    result += static_cast<char>('8' - rowOf(move.from));
+    result += static_cast<char>('a' + colOf(move.to));
+    result += static_cast<char>('8' - rowOf(move.to));
+    if (move.promotedPiece != EMPTY) {
+        result += tolower(pieceToChar(move.promotedPiece));
+    }
+    return result;
+}
+
 static bool checkDiagonalAttack(const Board &board, int square, bool white) {
     for (int d : BISHOP_DIRECTIONS) {
         int current = square;
@@ -693,7 +705,6 @@ Search::Search() {}
 Search::~Search() {}
 
 double Search::evaluate(const Board &board) {
-    // TODO more sophisticated than just material
     double score = 0.0;
     for (int i = 0; i < 64; i++) {
         Piece p = board.board[i];
@@ -709,8 +720,34 @@ double Search::evaluate(const Board &board) {
     return score;
 }
 
+bool Search::isKillerMove(const Move &move, int depth) const {
+    for (const auto &killer : killer_moves[depth]) {
+        if (killer.from == move.from && killer.to == move.to) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Search::storeKillerMove(const Move &move, int depth) {
+    if (move.capturedPiece != EMPTY) {
+        return;
+    }
+    auto &km = killer_moves[depth];
+    for (const auto &k : km) {
+        if (k.from == move.from && k.to == move.to) {
+            return;
+        }
+    }
+    km.insert(km.begin(), move);
+    if (km.size() > 2) {
+        km.pop_back();
+    }
+}
+
 double Search::alphaBeta(const Board &board, int depth, double alpha,
                          double beta) {
+    double originalAlpha = alpha;
     if (depth == 0) {
         return evaluate(board);
     }
@@ -723,10 +760,10 @@ double Search::alphaBeta(const Board &board, int depth, double alpha,
             case PV_NODE:
                 return ttEntry.value;
             case ALL_NODE:
-                alpha = std::max(alpha, ttEntry.value);
+                beta = std::min(beta, ttEntry.value);
                 break;
             case CUT_NODE:
-                beta = std::min(beta, ttEntry.value);
+                alpha = std::max(alpha, ttEntry.value);
                 break;
             }
             if (alpha >= beta) {
@@ -736,10 +773,19 @@ double Search::alphaBeta(const Board &board, int depth, double alpha,
     }
 
     MoveStorage moves = generateLegalMoves(board);
+    int insertPos = 0;
+    for (int i = 0; i < static_cast<int>(moves.size()); i++) {
+        if (isKillerMove(moves[i], depth)) {
+            if (i != insertPos) {
+                std::swap(moves[insertPos], moves[i]);
+            }
+            insertPos++;
+        }
+    }
 
     if (moves.empty()) {
         if (isKingInCheck(board, board.whiteToMove)) {
-            return board.whiteToMove ? -999999.0 : 999999.0;
+            return -999999.0;
         }
         return 0.0;
     }
@@ -770,7 +816,6 @@ double Search::alphaBeta(const Board &board, int depth, double alpha,
         if (score > bestScore) {
             bestScore = score;
             bestMove = move;
-
             if (score > alpha) {
                 alpha = score;
                 nodeType = PV_NODE;
@@ -779,13 +824,80 @@ double Search::alphaBeta(const Board &board, int depth, double alpha,
 
         if (alpha >= beta) {
             nodeType = CUT_NODE;
+            storeKillerMove(move, depth);
             break;
         }
     }
 
-    if (bestScore <= alpha) {
+    if (bestScore <= originalAlpha) {
         nodeType = ALL_NODE;
+    } else if (bestScore >= beta) {
+        nodeType = CUT_NODE;
+    } else {
+        nodeType = PV_NODE;
     }
     tt_.store(key, bestScore, nodeType, depth, bestMove);
     return bestScore;
+}
+
+std::optional<Move>
+Search::findBestMove(Board &board, int depth, std::atomic<bool> &stopRequested,
+                     std::optional<std::chrono::milliseconds> moveTime) {
+    searchStartTime_ = std::chrono::steady_clock::now();
+    moveTimeLimit_ = moveTime;
+    ZobristKey key = board.computeZobristKey();
+    MoveStorage moves = generateLegalMoves(board);
+    if (moves.empty()) {
+        return std::nullopt;
+    }
+
+    double bestScore = -std::numeric_limits<double>::infinity();
+    Move bestMove = moves[0]; // fallback
+
+    double alpha = -std::numeric_limits<double>::infinity();
+    double beta = std::numeric_limits<double>::infinity();
+
+    for (const Move &move : moves) {
+        if (stopRequested) {
+            return std::nullopt;
+        }
+
+        if (moveTimeLimit_) {
+            auto elapsed = std::chrono::steady_clock::now() - searchStartTime_;
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(
+                    elapsed) >= moveTimeLimit_.value()) {
+                return bestMove;
+            }
+        }
+
+        UndoInfo undo{
+            .move = move,
+            .pieceMoved = board.board[move.from],
+            .whiteToMoveBefore = board.whiteToMove,
+            .canWhiteCastleKingsideBefore = board.canWhiteCastleKingside,
+            .canWhiteCastleQueensideBefore = board.canWhiteCastleQueenside,
+            .canBlackCastleKingsideBefore = board.canBlackCastleKingside,
+            .canBlackCastleQueensideBefore = board.canBlackCastleQueenside,
+            .enPassantSquareBefore = board.enPassantSquare,
+            .halfMoveCaptureOrPawnClockBefore =
+                board.halfMoveCaptureOrPawnClock,
+            .fullMoveNumberBefore = board.fullMoveNumber,
+            .zobristKeyBefore = key};
+
+        makeMove(const_cast<Board &>(board), move);
+        double score = -alphaBeta(board, depth - 1, -beta, -alpha); // negamax
+        unmakeMove(const_cast<Board &>(board), move, undo);
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+        }
+
+        alpha = std::max(alpha, score);
+        if (alpha >= beta) {
+            break;
+        }
+    }
+
+    return bestMove;
 }

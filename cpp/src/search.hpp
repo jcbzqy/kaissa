@@ -8,6 +8,8 @@
 static constexpr int MAX_DEPTH = 64;
 using MoveStorage = absl::InlinedVector<Move, 256>;
 
+std::string moveToUCI(const Move &move);
+
 void makeMove(Board &board, const Move &move);
 
 void unmakeMove(Board &board, const Move &move, const UndoInfo &undoInfo);
@@ -48,9 +50,17 @@ class Search {
 
     double alphaBeta(const Board &board, int depth, double alpha, double beta);
 
+    std::optional<Move> findBestMove(
+        Board &board, int depth, std::atomic<bool> &stopRequested,
+        std::optional<std::chrono::milliseconds> moveTime = std::nullopt);
+
   private:
     double evaluate(const Board &board);
+    bool isKillerMove(const Move &move, int depth) const;
+    void storeKillerMove(const Move &move, int depth);
 
     TranspositionTable tt_;
+    std::chrono::steady_clock::time_point searchStartTime_;
+    std::optional<std::chrono::milliseconds> moveTimeLimit_;
     std::array<absl::InlinedVector<Move, 2>, MAX_DEPTH> killer_moves;
 };
