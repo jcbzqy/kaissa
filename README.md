@@ -1,6 +1,6 @@
 # kaissa
 
-basic UCI engines   for learning purposes
+basic UCI engines  
 separate engines in cpp and rust  
 array (not bitboard) representation
 
