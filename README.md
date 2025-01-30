@@ -14,6 +14,13 @@ cd cpp
 mkdir -p build
 conan install . --build=missing --profile conan_profiles/clang-linux-release
 conan build . --profile conan_profiles/clang-linux-release
+./build/Release/kaissa_tests
 ```
 
 ## rust
+```bash
+# install gcc, rustup first
+cd rust
+cargo build --release
+cargo test
+```
