@@ -267,15 +267,17 @@ void makeMove(Board &board, const Move &move) {
         board.canBlackCastleQueenside = false;
     }
 
-    if (movingPiece == WR || move.capturedPiece == WR) {
+    if (movingPiece == WR) {
         disableRookCastling(move.from);
-        if (move.capturedPiece == WR)
-            disableRookCastling(move.to);
     }
-    if (movingPiece == BR || move.capturedPiece == BR) {
+    if (move.capturedPiece == WR) {
+        disableRookCastling(move.to);
+    }
+    if (movingPiece == BR) {
         disableRookCastling(move.from);
-        if (move.capturedPiece == BR)
-            disableRookCastling(move.to);
+    }
+    if (move.capturedPiece == BR) {
+        disableRookCastling(move.to);
     }
 
     if (movingPiece == WP && (move.to - move.from == -16)) {
